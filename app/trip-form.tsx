@@ -11,12 +11,15 @@ import {
 
 import { Button } from '@/components/ui/Button';
 import { DateField } from '@/components/ui/DateField';
+import { PhotoPicker } from '@/components/ui/PhotoPicker';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { fontSize, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createTrip, updateTrip } from '@/services/firestore';
+import { uploadTripCover } from '@/services/storage';
 import { useAppSelector } from '@/store/hooks';
+import type { Trip } from '@/types';
 import { todayISO } from '@/utils/date';
 import { isNonEmpty, withinMaxLength } from '@/utils/validation';
 
@@ -36,6 +39,8 @@ export default function TripFormScreen() {
   const [destination, setDestination] = useState(existing?.destination ?? '');
   const [startDate, setStartDate] = useState(existing?.startDate ?? todayISO());
   const [endDate, setEndDate] = useState(existing?.endDate ?? todayISO());
+  const [coverUri, setCoverUri] = useState<string | null>(existing?.coverPhotoUrl ?? null);
+  const [coverChanged, setCoverChanged] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; destination?: string; dates?: string }>(
     {},
   );
@@ -59,20 +64,28 @@ export default function TripFormScreen() {
     setSubmitting(true);
     try {
       if (editing && id) {
-        await updateTrip(uid, id, {
+        const patch: Partial<Trip> = {
           title: title.trim(),
           destination: destination.trim(),
           startDate,
           endDate,
-        });
+        };
+        if (coverChanged) {
+          patch.coverPhotoUrl = coverUri ? await uploadTripCover(uid, id, coverUri) : '';
+        }
+        await updateTrip(uid, id, patch);
       } else {
-        await createTrip(uid, {
+        const tripId = await createTrip(uid, {
           title: title.trim(),
           destination: destination.trim(),
           startDate,
           endDate,
           createdAt: Date.now(),
         });
+        if (coverUri) {
+          const url = await uploadTripCover(uid, tripId, coverUri);
+          await updateTrip(uid, tripId, { coverPhotoUrl: url });
+        }
       }
       router.back();
     } catch {
@@ -99,6 +112,15 @@ export default function TripFormScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <PhotoPicker
+            label="Cover photo"
+            uri={coverUri}
+            onChange={(uri) => {
+              setCoverUri(uri);
+              setCoverChanged(true);
+            }}
+            height={160}
+          />
           <TextField
             label="Title"
             value={title}

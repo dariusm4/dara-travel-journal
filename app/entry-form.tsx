@@ -11,12 +11,16 @@ import {
 
 import { Button } from '@/components/ui/Button';
 import { DateField } from '@/components/ui/DateField';
+import { LocationField } from '@/components/ui/LocationField';
+import { PhotoPicker } from '@/components/ui/PhotoPicker';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { fontSize, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createEntry, updateEntry } from '@/services/firestore';
+import { deleteEntryPhoto, uploadEntryPhoto } from '@/services/storage';
 import { useAppSelector } from '@/store/hooks';
+import type { Entry, GeoLocation } from '@/types';
 import { todayISO } from '@/utils/date';
 import { isNonEmpty, withinMaxLength } from '@/utils/validation';
 
@@ -36,9 +40,17 @@ export default function EntryFormScreen() {
   const [title, setTitle] = useState(existing?.title ?? '');
   const [note, setNote] = useState(existing?.note ?? '');
   const [entryDate, setEntryDate] = useState(existing?.entryDate ?? todayISO());
+  const [photoUri, setPhotoUri] = useState<string | null>(existing?.photoUrl ?? null);
+  const [photoChanged, setPhotoChanged] = useState(false);
+  const [location, setLocation] = useState<GeoLocation | null>(existing?.location ?? null);
   const [errors, setErrors] = useState<{ title?: string; note?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const onPhotoChange = (uri: string | null) => {
+    setPhotoUri(uri);
+    setPhotoChanged(true);
+  };
 
   const validate = () => {
     const next: typeof errors = {};
@@ -57,15 +69,34 @@ export default function EntryFormScreen() {
     setSubmitting(true);
     try {
       if (editing && id) {
-        await updateEntry(uid, tripId, id, { title: title.trim(), note: note.trim(), entryDate });
+        const patch: Partial<Entry> = {
+          title: title.trim(),
+          note: note.trim(),
+          entryDate,
+          location: location ?? undefined,
+        };
+        if (photoChanged) {
+          if (photoUri) {
+            patch.photoUrl = await uploadEntryPhoto(uid, tripId, id, photoUri);
+          } else {
+            patch.photoUrl = '';
+            void deleteEntryPhoto(uid, tripId, id);
+          }
+        }
+        await updateEntry(uid, tripId, id, patch);
       } else {
-        await createEntry(uid, tripId, {
+        const entryId = await createEntry(uid, tripId, {
           tripId,
           title: title.trim(),
           note: note.trim(),
           entryDate,
+          location: location ?? undefined,
           createdAt: Date.now(),
         });
+        if (photoUri) {
+          const url = await uploadEntryPhoto(uid, tripId, entryId, photoUri);
+          await updateEntry(uid, tripId, entryId, { photoUrl: url });
+        }
       }
       router.back();
     } catch {
@@ -92,6 +123,7 @@ export default function EntryFormScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <PhotoPicker label="Photo" uri={photoUri} onChange={onPhotoChange} />
           <TextField
             label="Title"
             value={title}
@@ -101,6 +133,7 @@ export default function EntryFormScreen() {
             maxLength={MAX_TITLE}
           />
           <DateField label="Date" value={entryDate} onChange={setEntryDate} />
+          <LocationField value={location} onChange={setLocation} />
           <TextField
             label="Note"
             value={note}

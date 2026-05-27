@@ -20,6 +20,19 @@ export async function uploadEntryPhoto(
   return getDownloadURL(objectRef);
 }
 
+/** Uploads a trip cover photo and returns its download URL. */
+export async function uploadTripCover(
+  uid: string,
+  tripId: string,
+  localUri: string,
+): Promise<string> {
+  const response = await fetch(localUri);
+  const blob = await response.blob();
+  const objectRef = ref(storage, `users/${uid}/${tripId}/cover.jpg`);
+  await uploadBytes(objectRef, blob);
+  return getDownloadURL(objectRef);
+}
+
 export async function deleteEntryPhoto(
   uid: string,
   tripId: string,
