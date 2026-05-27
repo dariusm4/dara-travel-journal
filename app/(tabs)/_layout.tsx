@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
+import { HeaderButton } from '@/components/ui/HeaderButton';
 import { fontWeight } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTripsSync } from '@/hooks/useTripsSync';
@@ -30,6 +31,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="map-outline" color={color} size={size} />
           ),
+          headerRight: () => <HeaderButton href="/trip-form" />,
         }}
       />
       <Tabs.Screen

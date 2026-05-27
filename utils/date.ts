@@ -64,3 +64,15 @@ export function daysBetween(startIso: string, endIso: string): number {
   const diff = Math.round((e.getTime() - s.getTime()) / MS_PER_DAY);
   return Math.max(1, diff + 1);
 }
+
+/** Format a Date as a date-only ISO string (YYYY-MM-DD) using local parts. */
+export function toISODate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function todayISO(): string {
+  return toISODate(new Date());
+}

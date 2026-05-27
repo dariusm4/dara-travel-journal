@@ -51,7 +51,8 @@
           "cameraPermission": "Dara needs your camera so you can capture photos for journal entries."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

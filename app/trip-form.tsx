@@ -1,0 +1,141 @@
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+} from 'react-native';
+
+import { Button } from '@/components/ui/Button';
+import { DateField } from '@/components/ui/DateField';
+import { Screen } from '@/components/ui/Screen';
+import { TextField } from '@/components/ui/TextField';
+import { fontSize, spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { createTrip, updateTrip } from '@/services/firestore';
+import { useAppSelector } from '@/store/hooks';
+import { todayISO } from '@/utils/date';
+import { isNonEmpty, withinMaxLength } from '@/utils/validation';
+
+const MAX_TITLE = 80;
+
+export default function TripFormScreen() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const editing = Boolean(id);
+  const c = useTheme();
+  const router = useRouter();
+  const uid = useAppSelector((s) => s.auth.user?.uid);
+  const existing = useAppSelector((s) =>
+    id ? (s.trips.items.find((t) => t.id === id) ?? null) : null,
+  );
+
+  const [title, setTitle] = useState(existing?.title ?? '');
+  const [destination, setDestination] = useState(existing?.destination ?? '');
+  const [startDate, setStartDate] = useState(existing?.startDate ?? todayISO());
+  const [endDate, setEndDate] = useState(existing?.endDate ?? todayISO());
+  const [errors, setErrors] = useState<{ title?: string; destination?: string; dates?: string }>(
+    {},
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const validate = () => {
+    const next: typeof errors = {};
+    if (!isNonEmpty(title)) next.title = 'Give your trip a title.';
+    else if (!withinMaxLength(title, MAX_TITLE))
+      next.title = `Keep it under ${MAX_TITLE} characters.`;
+    if (!isNonEmpty(destination)) next.destination = 'Where did you go?';
+    if (endDate < startDate) next.dates = 'End date cannot be before the start date.';
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const onSave = async () => {
+    setFormError(null);
+    if (!validate() || !uid) return;
+    setSubmitting(true);
+    try {
+      if (editing && id) {
+        await updateTrip(uid, id, {
+          title: title.trim(),
+          destination: destination.trim(),
+          startDate,
+          endDate,
+        });
+      } else {
+        await createTrip(uid, {
+          title: title.trim(),
+          destination: destination.trim(),
+          startDate,
+          endDate,
+          createdAt: Date.now(),
+        });
+      }
+      router.back();
+    } catch {
+      setFormError('Could not save. Check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Screen padded={false}>
+      <Stack.Screen
+        options={{
+          title: editing ? 'Edit trip' : 'New trip',
+          headerLeft: () => (
+            <Pressable hitSlop={8} onPress={() => router.back()}>
+              <Text style={{ color: c.primary, fontSize: fontSize.body }}>Cancel</Text>
+            </Pressable>
+          ),
+        }}
+      />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <TextField
+            label="Title"
+            value={title}
+            onChangeText={setTitle}
+            error={errors.title}
+            placeholder="Summer in Portugal"
+            maxLength={MAX_TITLE}
+          />
+          <TextField
+            label="Destination"
+            value={destination}
+            onChangeText={setDestination}
+            error={errors.destination}
+            placeholder="Lisbon, Portugal"
+          />
+          <DateField label="Start date" value={startDate} onChange={setStartDate} />
+          <DateField label="End date" value={endDate} onChange={setEndDate} />
+          {errors.dates ? (
+            <Text style={[styles.error, { color: c.danger }]}>{errors.dates}</Text>
+          ) : null}
+          {formError ? <Text style={[styles.error, { color: c.danger }]}>{formError}</Text> : null}
+
+          <Button
+            title={editing ? 'Save changes' : 'Create trip'}
+            onPress={onSave}
+            loading={submitting}
+            style={styles.save}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  content: { padding: spacing.lg },
+  error: { fontSize: fontSize.body, marginBottom: spacing.sm },
+  save: { marginTop: spacing.md },
+});

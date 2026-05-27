@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuthListener } from '@/hooks/useAuthListener';
+import { useTheme } from '@/hooks/useTheme';
 import { store } from '@/store';
 import { useAppSelector } from '@/store/hooks';
 import type { AuthStatus } from '@/store/slices/authSlice';
@@ -64,6 +65,7 @@ function useProtectedRoute(status: AuthStatus) {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const c = useTheme();
   const status = useAppSelector((s) => s.auth.status);
 
   useAuthListener();
@@ -77,10 +79,20 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: c.background },
+          headerTintColor: c.text,
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: c.background },
+        }}
+      >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="trip/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="entry/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="trip-form" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="entry-form" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
   );
