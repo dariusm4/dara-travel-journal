@@ -3,9 +3,13 @@ import { Tabs } from 'expo-router';
 
 import { fontWeight } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { useTripsSync } from '@/hooks/useTripsSync';
 
 export default function TabLayout() {
   const c = useTheme();
+
+  // Subscribe to the user's trips for the lifetime of the authenticated app.
+  useTripsSync();
 
   return (
     <Tabs

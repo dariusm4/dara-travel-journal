@@ -1,6 +1,6 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 import { config } from './config';
@@ -17,7 +17,9 @@ export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(secureStorage),
 });
 
-export const db = getFirestore(app);
+// ignoreUndefinedProperties lets us pass partial objects (optional photo,
+// weather, etc.) without Firestore rejecting `undefined` fields.
+export const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
 export const storage = getStorage(app);
 
 export { app };

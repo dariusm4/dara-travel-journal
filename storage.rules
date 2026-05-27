@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Entry photos live under users/{uid}/... and are readable/writable only by
+// their owner (criterion B / 14).
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
