@@ -7,7 +7,7 @@ GPS location (auto-resolved to a place name), the weather, and a note. An
 "trip story". Your journal lives in the cloud, so it survives a reinstall and
 follows you across devices.
 
-> Course project for *Mobile Programming — Laboratory*. Built against the full
+> Course project for _Mobile Programming — Laboratory_. Built against the full
 > grading rubric (see [`docs/Project-Criteria.md`](docs/Project-Criteria.md)),
 > targeting the top grade: all base criteria plus all four extended criteria.
 
@@ -28,15 +28,15 @@ _Added in the final milestone (key screens + a short flow GIF)._
 
 ## Tech stack
 
-| Area | Choice |
-| --- | --- |
-| Framework | Expo (managed) + React Native, **TypeScript** |
-| Navigation | **Expo Router** (file-based) — tabs + stack + modal |
-| State | **Redux Toolkit** + typed hooks |
-| Backend | **Firebase** — Auth, Firestore, Storage; Cloud Function AI proxy |
-| Native | image-picker, location, secure-store, haptics, notifications |
-| UX | Reanimated, Gesture Handler, NetInfo |
-| Quality | ESLint + Prettier, Jest + React Native Testing Library |
+| Area       | Choice                                                           |
+| ---------- | ---------------------------------------------------------------- |
+| Framework  | Expo (managed) + React Native, **TypeScript**                    |
+| Navigation | **Expo Router** (file-based) — tabs + stack + modal              |
+| State      | **Redux Toolkit** + typed hooks                                  |
+| Backend    | **Firebase** — Auth, Firestore, Storage; Cloud Function AI proxy |
+| Native     | image-picker, location, secure-store, haptics, notifications     |
+| UX         | Reanimated, Gesture Handler, NetInfo                             |
+| Quality    | ESLint + Prettier, Jest + React Native Testing Library           |
 
 ### Why Redux Toolkit?
 
