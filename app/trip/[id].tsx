@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,7 +19,8 @@ import { Screen } from '@/components/ui/Screen';
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
 import { useEntriesSync } from '@/hooks/useEntriesSync';
 import { useTheme } from '@/hooks/useTheme';
-import { deleteTrip } from '@/services/firestore';
+import { generateTripStory } from '@/services/ai';
+import { deleteTrip, updateTrip } from '@/services/firestore';
 import { useAppSelector } from '@/store/hooks';
 import { selectTripById } from '@/store/slices/tripsSlice';
 import type { Entry } from '@/types';
@@ -36,10 +37,27 @@ export default function TripDetailScreen() {
 
   useEntriesSync(id);
 
+  const [storyLoading, setStoryLoading] = useState(false);
+  const [storyError, setStoryError] = useState<string | null>(null);
+
   const openEntry = useCallback(
     (entry: Entry) => router.push(`/entry/${entry.id}?tripId=${id}`),
     [router, id],
   );
+
+  const onGenerateStory = useCallback(async () => {
+    if (!uid || !trip) return;
+    setStoryError(null);
+    setStoryLoading(true);
+    try {
+      const story = await generateTripStory(trip, entries);
+      await updateTrip(uid, id, { story });
+    } catch (e) {
+      setStoryError(e instanceof Error ? e.message : 'Could not generate the story.');
+    } finally {
+      setStoryLoading(false);
+    }
+  }, [uid, trip, entries, id]);
 
   const confirmDelete = useCallback(() => {
     Alert.alert('Delete trip', 'This permanently removes the trip and all of its entries.', [
@@ -90,12 +108,33 @@ export default function TripDetailScreen() {
         {daysBetween(trip.startDate, trip.endDate)} days
       </Text>
 
-      {trip.story ? (
-        <View style={[styles.story, { backgroundColor: c.surfaceAlt }]}>
-          <Text style={[styles.storyLabel, { color: c.primary }]}>Trip story</Text>
-          <Text style={[styles.storyText, { color: c.text }]}>{trip.story}</Text>
+      <View style={[styles.story, { backgroundColor: c.surfaceAlt }]}>
+        <View style={styles.storyHeader}>
+          <Text style={[styles.storyLabel, { color: c.primary }]}>AI trip story</Text>
+          <Pressable
+            hitSlop={8}
+            onPress={onGenerateStory}
+            disabled={storyLoading}
+            style={({ pressed }) => pressed && styles.pressed}
+          >
+            <Text style={[styles.storyAction, { color: c.primary }]}>
+              {trip.story ? 'Regenerate' : 'Generate'}
+            </Text>
+          </Pressable>
         </View>
-      ) : null}
+        {storyLoading ? (
+          <ActivityIndicator color={c.primary} style={styles.storyLoading} />
+        ) : trip.story ? (
+          <Text style={[styles.storyText, { color: c.text }]}>{trip.story}</Text>
+        ) : (
+          <Text style={[styles.storyText, { color: c.textMuted }]}>
+            Let your companion turn these entries into a story.
+          </Text>
+        )}
+        {storyError ? (
+          <Text style={[styles.storyErr, { color: c.danger }]}>{storyError}</Text>
+        ) : null}
+      </View>
 
       <View style={styles.entriesHeader}>
         <Text style={[styles.sectionTitle, { color: c.text }]}>Entries</Text>
@@ -174,14 +213,22 @@ const styles = StyleSheet.create({
   meta: { fontSize: fontSize.body },
   dates: { fontSize: fontSize.body, fontWeight: fontWeight.semibold, marginTop: spacing.xs },
   story: { borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
+  storyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
   storyLabel: {
     fontSize: fontSize.caption,
     fontWeight: fontWeight.bold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: spacing.xs,
   },
+  storyAction: { fontSize: fontSize.caption, fontWeight: fontWeight.bold },
+  storyLoading: { alignSelf: 'flex-start', marginVertical: spacing.sm },
   storyText: { fontSize: fontSize.body, lineHeight: 22 },
+  storyErr: { fontSize: fontSize.caption, marginTop: spacing.xs },
   entriesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
