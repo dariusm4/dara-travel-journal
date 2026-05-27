@@ -61,6 +61,18 @@ export default function TripsScreen() {
     );
   }
 
+  if (status === 'error' && items.length === 0) {
+    return (
+      <Screen edges={[]} padded={false}>
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Couldn't load your trips"
+          message="Check your connection — your saved trips appear here once you're back online."
+        />
+      </Screen>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <Screen edges={[]} padded={false}>

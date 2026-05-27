@@ -2,12 +2,16 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider } from 'react-redux';
 import 'react-native-reanimated';
 
+import { AppErrorBoundary } from '@/components/AppErrorBoundary';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuthListener } from '@/hooks/useAuthListener';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { useTheme } from '@/hooks/useTheme';
 import { store } from '@/store';
 import { useAppSelector } from '@/store/hooks';
@@ -69,6 +73,7 @@ function RootLayoutNav() {
   const status = useAppSelector((s) => s.auth.status);
 
   useAuthListener();
+  useNetworkStatus();
   useProtectedRoute(status);
 
   useEffect(() => {
@@ -79,22 +84,27 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: c.background },
-          headerTintColor: c.text,
-          headerShadowVisible: false,
-          contentStyle: { backgroundColor: c.background },
-        }}
-      >
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="trip/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
-        <Stack.Screen name="entry/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
-        <Stack.Screen name="trip-form" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="entry-form" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="currency" options={{ presentation: 'modal' }} />
-      </Stack>
+      <View style={{ flex: 1, backgroundColor: c.background }}>
+        <OfflineBanner />
+        <AppErrorBoundary>
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: c.background },
+              headerTintColor: c.text,
+              headerShadowVisible: false,
+              contentStyle: { backgroundColor: c.background },
+            }}
+          >
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="trip/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
+            <Stack.Screen name="entry/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
+            <Stack.Screen name="trip-form" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="entry-form" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="currency" options={{ presentation: 'modal' }} />
+          </Stack>
+        </AppErrorBoundary>
+      </View>
     </ThemeProvider>
   );
 }
