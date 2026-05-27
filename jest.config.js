@@ -10,5 +10,6 @@ const mergedFirst = firstPattern.replace('(?!(', `(?!(${esmDeps.join('|')}|`);
 /** @type {import('jest').Config} */
 module.exports = {
   ...expoPreset,
+  setupFilesAfterEnv: [...(expoPreset.setupFilesAfterEnv ?? []), '<rootDir>/jest-setup.ts'],
   transformIgnorePatterns: [mergedFirst, ...restPatterns],
 };

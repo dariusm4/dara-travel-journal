@@ -3,7 +3,7 @@ import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
-import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
+import { fontSize, fontWeight, radius, spacing, type ColorScheme } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { signOutUser } from '@/services/auth';
 import {
@@ -13,10 +13,12 @@ import {
 } from '@/services/notifications';
 import { useAppSelector } from '@/store/hooks';
 import { haptics } from '@/utils/haptics';
+import { computeTripStats } from '@/utils/stats';
 
 export default function ProfileScreen() {
   const c = useTheme();
   const user = useAppSelector((s) => s.auth.user);
+  const stats = computeTripStats(useAppSelector((s) => s.trips.items));
   const [reminders, setReminders] = useState(false);
 
   useEffect(() => {
@@ -62,6 +64,18 @@ export default function ProfileScreen() {
       <View
         style={[
           styles.card,
+          styles.statsRow,
+          { backgroundColor: c.surface, borderColor: c.border },
+        ]}
+      >
+        <Stat label="Trips" value={stats.trips} color={c} />
+        <Stat label="Places" value={stats.places} color={c} />
+        <Stat label="Days" value={stats.days} color={c} />
+      </View>
+
+      <View
+        style={[
+          styles.card,
           styles.settingRow,
           { backgroundColor: c.surface, borderColor: c.border },
         ]}
@@ -84,7 +98,25 @@ export default function ProfileScreen() {
   );
 }
 
+function Stat({ label, value, color }: { label: string; value: number; color: ColorScheme }) {
+  return (
+    <View style={styles.stat}>
+      <Text style={[styles.statValue, { color: color.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: color.textMuted }]}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  stat: { alignItems: 'center' },
+  statValue: { fontSize: fontSize.heading, fontWeight: fontWeight.bold },
+  statLabel: {
+    fontSize: fontSize.caption,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 2,
+  },
   card: {
     borderWidth: 1,
     borderRadius: radius.lg,
