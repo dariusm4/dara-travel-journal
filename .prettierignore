@@ -1,0 +1,6 @@
+# Reference docs and generated/vendor output should not be reformatted.
+docs/
+node_modules/
+.expo/
+dist/
+package-lock.json

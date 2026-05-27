@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "dara",
+    "name": "Dara",
     "slug": "dara",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,9 +8,11 @@
     "scheme": "dara",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.berkay.dara"
     },
     "android": {
+      "package": "com.berkay.dara",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -33,7 +35,23 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-image",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Dara uses your location to tag journal entries with the place you visited."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Dara needs access to your photos so you can attach them to journal entries.",
+          "cameraPermission": "Dara needs your camera so you can capture photos for journal entries."
+        }
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true
