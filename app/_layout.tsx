@@ -93,6 +93,7 @@ function RootLayoutNav() {
         <Stack.Screen name="entry/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
         <Stack.Screen name="trip-form" options={{ presentation: 'modal' }} />
         <Stack.Screen name="entry-form" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="currency" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
   );

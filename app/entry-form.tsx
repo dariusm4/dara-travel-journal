@@ -19,8 +19,9 @@ import { fontSize, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createEntry, updateEntry } from '@/services/firestore';
 import { deleteEntryPhoto, uploadEntryPhoto } from '@/services/storage';
+import { getCurrentWeather } from '@/services/weather';
 import { useAppSelector } from '@/store/hooks';
-import type { Entry, GeoLocation } from '@/types';
+import type { Entry, GeoLocation, Weather } from '@/types';
 import { todayISO } from '@/utils/date';
 import { isNonEmpty, withinMaxLength } from '@/utils/validation';
 
@@ -43,6 +44,7 @@ export default function EntryFormScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(existing?.photoUrl ?? null);
   const [photoChanged, setPhotoChanged] = useState(false);
   const [location, setLocation] = useState<GeoLocation | null>(existing?.location ?? null);
+  const [weather, setWeather] = useState<Weather | null>(existing?.weather ?? null);
   const [errors, setErrors] = useState<{ title?: string; note?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -50,6 +52,19 @@ export default function EntryFormScreen() {
   const onPhotoChange = (uri: string | null) => {
     setPhotoUri(uri);
     setPhotoChanged(true);
+  };
+
+  // Auto-fetch current weather for the captured location (best-effort).
+  const onLocationChange = async (geo: GeoLocation | null) => {
+    setLocation(geo);
+    setWeather(null);
+    if (geo) {
+      try {
+        setWeather(await getCurrentWeather(geo.lat, geo.lng));
+      } catch {
+        // Weather is optional; ignore failures (missing key, offline, etc.).
+      }
+    }
   };
 
   const validate = () => {
@@ -74,6 +89,7 @@ export default function EntryFormScreen() {
           note: note.trim(),
           entryDate,
           location: location ?? undefined,
+          weather: weather ?? undefined,
         };
         if (photoChanged) {
           if (photoUri) {
@@ -91,6 +107,7 @@ export default function EntryFormScreen() {
           note: note.trim(),
           entryDate,
           location: location ?? undefined,
+          weather: weather ?? undefined,
           createdAt: Date.now(),
         });
         if (photoUri) {
@@ -133,7 +150,12 @@ export default function EntryFormScreen() {
             maxLength={MAX_TITLE}
           />
           <DateField label="Date" value={entryDate} onChange={setEntryDate} />
-          <LocationField value={location} onChange={setLocation} />
+          <LocationField value={location} onChange={onLocationChange} />
+          {weather ? (
+            <Text style={[styles.weather, { color: c.textMuted }]}>
+              Weather: {Math.round(weather.temp)}° · {weather.condition}
+            </Text>
+          ) : null}
           <TextField
             label="Note"
             value={note}
@@ -163,6 +185,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: spacing.lg },
   noteInput: { minHeight: 120, paddingTop: spacing.sm, textAlignVertical: 'top' },
+  weather: { fontSize: fontSize.caption, marginTop: -spacing.sm, marginBottom: spacing.md },
   error: { fontSize: fontSize.body, marginBottom: spacing.sm },
   save: { marginTop: spacing.md },
 });

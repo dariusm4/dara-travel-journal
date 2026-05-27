@@ -118,6 +118,13 @@ export default function TripDetailScreen() {
             <View style={styles.headerActions}>
               <Pressable
                 hitSlop={8}
+                onPress={() => router.push('/currency')}
+                style={({ pressed }) => pressed && styles.pressed}
+              >
+                <Ionicons name="cash-outline" size={22} color={c.primary} />
+              </Pressable>
+              <Pressable
+                hitSlop={8}
                 onPress={() => router.push(`/trip-form?id=${id}`)}
                 style={({ pressed }) => pressed && styles.pressed}
               >

@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -18,10 +19,16 @@ import { fontSize, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createTrip, updateTrip } from '@/services/firestore';
 import { uploadTripCover } from '@/services/storage';
+import { findDestinationPhoto } from '@/services/unsplash';
 import { useAppSelector } from '@/store/hooks';
 import type { Trip } from '@/types';
 import { todayISO } from '@/utils/date';
 import { isNonEmpty, withinMaxLength } from '@/utils/validation';
+
+/** Stores a cover: keep remote (Unsplash) URLs as-is; upload local files. */
+async function resolveCoverUrl(uid: string, tripId: string, uri: string): Promise<string> {
+  return uri.startsWith('http') ? uri : uploadTripCover(uid, tripId, uri);
+}
 
 const MAX_TITLE = 80;
 
@@ -45,7 +52,29 @@ export default function TripFormScreen() {
     {},
   );
   const [submitting, setSubmitting] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const suggestCover = async () => {
+    if (!isNonEmpty(destination)) {
+      Alert.alert('Add a destination first', 'Enter where you went to find a matching photo.');
+      return;
+    }
+    setSuggesting(true);
+    try {
+      const url = await findDestinationPhoto(destination.trim());
+      if (url) {
+        setCoverUri(url);
+        setCoverChanged(true);
+      } else {
+        Alert.alert('No photo found', `Couldn't find a photo for "${destination.trim()}".`);
+      }
+    } catch {
+      Alert.alert('Could not load photo', 'Please check your connection and try again.');
+    } finally {
+      setSuggesting(false);
+    }
+  };
 
   const validate = () => {
     const next: typeof errors = {};
@@ -71,7 +100,7 @@ export default function TripFormScreen() {
           endDate,
         };
         if (coverChanged) {
-          patch.coverPhotoUrl = coverUri ? await uploadTripCover(uid, id, coverUri) : '';
+          patch.coverPhotoUrl = coverUri ? await resolveCoverUrl(uid, id, coverUri) : '';
         }
         await updateTrip(uid, id, patch);
       } else {
@@ -83,8 +112,9 @@ export default function TripFormScreen() {
           createdAt: Date.now(),
         });
         if (coverUri) {
-          const url = await uploadTripCover(uid, tripId, coverUri);
-          await updateTrip(uid, tripId, { coverPhotoUrl: url });
+          await updateTrip(uid, tripId, {
+            coverPhotoUrl: await resolveCoverUrl(uid, tripId, coverUri),
+          });
         }
       }
       router.back();
@@ -120,6 +150,13 @@ export default function TripFormScreen() {
               setCoverChanged(true);
             }}
             height={160}
+          />
+          <Button
+            title="Suggest a cover from Unsplash"
+            variant="ghost"
+            onPress={suggestCover}
+            loading={suggesting}
+            style={styles.suggest}
           />
           <TextField
             label="Title"
@@ -158,6 +195,7 @@ export default function TripFormScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: spacing.lg },
+  suggest: { minHeight: 40, marginBottom: spacing.md },
   error: { fontSize: fontSize.body, marginBottom: spacing.sm },
   save: { marginTop: spacing.md },
 });
