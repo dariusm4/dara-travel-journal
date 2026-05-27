@@ -23,6 +23,7 @@ import { findDestinationPhoto } from '@/services/unsplash';
 import { useAppSelector } from '@/store/hooks';
 import type { Trip } from '@/types';
 import { todayISO } from '@/utils/date';
+import { haptics } from '@/utils/haptics';
 import { isNonEmpty, withinMaxLength } from '@/utils/validation';
 
 /** Stores a cover: keep remote (Unsplash) URLs as-is; upload local files. */
@@ -117,6 +118,7 @@ export default function TripFormScreen() {
           });
         }
       }
+      haptics.success();
       router.back();
     } catch {
       setFormError('Could not save. Check your connection and try again.');

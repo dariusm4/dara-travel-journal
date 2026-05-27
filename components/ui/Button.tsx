@@ -9,6 +9,7 @@ import {
 
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { haptics } from '@/utils/haptics';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -50,7 +51,10 @@ export function Button({
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
-      onPress={onPress}
+      onPress={() => {
+        haptics.light();
+        onPress();
+      }}
       style={({ pressed }) => [
         styles.base,
         {

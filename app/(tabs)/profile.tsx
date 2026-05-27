@@ -12,6 +12,7 @@ import {
   scheduleJournalReminder,
 } from '@/services/notifications';
 import { useAppSelector } from '@/store/hooks';
+import { haptics } from '@/utils/haptics';
 
 export default function ProfileScreen() {
   const c = useTheme();
@@ -25,6 +26,7 @@ export default function ProfileScreen() {
   }, []);
 
   const toggleReminders = async (value: boolean) => {
+    haptics.light();
     if (value) {
       const ok = await scheduleJournalReminder();
       if (!ok) {

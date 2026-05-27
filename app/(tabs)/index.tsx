@@ -1,25 +1,54 @@
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
 
 import { TripCard } from '@/components/journal/TripCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
+import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
 import { spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { deleteTrip } from '@/services/firestore';
 import { useAppSelector } from '@/store/hooks';
 import type { Trip } from '@/types';
+import { haptics } from '@/utils/haptics';
 
 export default function TripsScreen() {
   const c = useTheme();
   const router = useRouter();
+  const uid = useAppSelector((s) => s.auth.user?.uid);
   const { items, status } = useAppSelector((s) => s.trips);
 
   const openTrip = useCallback((trip: Trip) => router.push(`/trip/${trip.id}`), [router]);
 
+  const confirmDelete = useCallback(
+    (trip: Trip) => {
+      Alert.alert('Delete trip', `Delete "${trip.title}" and all of its entries?`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            haptics.warning();
+            try {
+              if (uid) await deleteTrip(uid, trip.id);
+            } catch {
+              Alert.alert('Could not delete', 'Please check your connection and try again.');
+            }
+          },
+        },
+      ]);
+    },
+    [uid],
+  );
+
   const renderItem = useCallback(
-    ({ item }: { item: Trip }) => <TripCard trip={item} onPress={openTrip} />,
-    [openTrip],
+    ({ item, index }: { item: Trip; index: number }) => (
+      <SwipeToDelete onDelete={() => confirmDelete(item)}>
+        <TripCard trip={item} onPress={openTrip} index={index} />
+      </SwipeToDelete>
+    ),
+    [openTrip, confirmDelete],
   );
 
   if (status === 'loading' && items.length === 0) {

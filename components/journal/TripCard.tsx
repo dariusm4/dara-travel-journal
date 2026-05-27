@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { fontSize, fontWeight, radius, shadow, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -11,49 +12,52 @@ import { formatDateRange } from '@/utils/date';
 interface TripCardProps {
   trip: Trip;
   onPress: (trip: Trip) => void;
+  index?: number;
 }
 
-function TripCardComponent({ trip, onPress }: TripCardProps) {
+function TripCardComponent({ trip, onPress, index = 0 }: TripCardProps) {
   const c = useTheme();
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => onPress(trip)}
-      style={({ pressed }) => [
-        styles.card,
-        { backgroundColor: c.surface, borderColor: c.border },
-        shadow.card,
-        pressed && styles.pressed,
-      ]}
-    >
-      {trip.coverPhotoUrl ? (
-        <Image
-          source={{ uri: trip.coverPhotoUrl }}
-          style={styles.cover}
-          contentFit="cover"
-          transition={200}
-        />
-      ) : (
-        <View style={[styles.cover, styles.coverPlaceholder, { backgroundColor: c.surfaceAlt }]}>
-          <Ionicons name="image-outline" size={28} color={c.textMuted} />
-        </View>
-      )}
+    <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 50).duration(260)}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => onPress(trip)}
+        style={({ pressed }) => [
+          styles.card,
+          { backgroundColor: c.surface, borderColor: c.border },
+          shadow.card,
+          pressed && styles.pressed,
+        ]}
+      >
+        {trip.coverPhotoUrl ? (
+          <Image
+            source={{ uri: trip.coverPhotoUrl }}
+            style={styles.cover}
+            contentFit="cover"
+            transition={200}
+          />
+        ) : (
+          <View style={[styles.cover, styles.coverPlaceholder, { backgroundColor: c.surfaceAlt }]}>
+            <Ionicons name="image-outline" size={28} color={c.textMuted} />
+          </View>
+        )}
 
-      <View style={styles.body}>
-        <Text numberOfLines={1} style={[styles.title, { color: c.text }]}>
-          {trip.title}
-        </Text>
-        <View style={styles.metaRow}>
-          <Ionicons name="location-outline" size={14} color={c.textMuted} />
-          <Text numberOfLines={1} style={[styles.meta, { color: c.textMuted }]}>
-            {trip.destination}
+        <View style={styles.body}>
+          <Text numberOfLines={1} style={[styles.title, { color: c.text }]}>
+            {trip.title}
+          </Text>
+          <View style={styles.metaRow}>
+            <Ionicons name="location-outline" size={14} color={c.textMuted} />
+            <Text numberOfLines={1} style={[styles.meta, { color: c.textMuted }]}>
+              {trip.destination}
+            </Text>
+          </View>
+          <Text style={[styles.dates, { color: c.primary }]}>
+            {formatDateRange(trip.startDate, trip.endDate)}
           </Text>
         </View>
-        <Text style={[styles.dates, { color: c.primary }]}>
-          {formatDateRange(trip.startDate, trip.endDate)}
-        </Text>
-      </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 }
 

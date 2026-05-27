@@ -17,6 +17,7 @@ import { Screen } from '@/components/ui/Screen';
 import { fontSize, radius, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { chatWithCompanion, type ChatMessage } from '@/services/ai';
+import { haptics } from '@/utils/haptics';
 
 interface Message {
   id: string;
@@ -35,6 +36,7 @@ export default function CompanionScreen() {
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
+    haptics.light();
     setError(null);
     const next = [...messages, { id: `u${Date.now()}`, role: 'user' as const, content: text }];
     setMessages(next);

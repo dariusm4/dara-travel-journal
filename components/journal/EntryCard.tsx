@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -11,52 +12,55 @@ import { formatDate } from '@/utils/date';
 interface EntryCardProps {
   entry: Entry;
   onPress: (entry: Entry) => void;
+  index?: number;
 }
 
-function EntryCardComponent({ entry, onPress }: EntryCardProps) {
+function EntryCardComponent({ entry, onPress, index = 0 }: EntryCardProps) {
   const c = useTheme();
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => onPress(entry)}
-      style={({ pressed }) => [
-        styles.row,
-        { backgroundColor: c.surface, borderColor: c.border },
-        pressed && styles.pressed,
-      ]}
-    >
-      {entry.photoUrl ? (
-        <Image
-          source={{ uri: entry.photoUrl }}
-          style={styles.thumb}
-          contentFit="cover"
-          transition={150}
-        />
-      ) : (
-        <View style={[styles.thumb, styles.thumbPlaceholder, { backgroundColor: c.surfaceAlt }]}>
-          <Ionicons name="document-text-outline" size={22} color={c.textMuted} />
-        </View>
-      )}
+    <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 40).duration(240)}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => onPress(entry)}
+        style={({ pressed }) => [
+          styles.row,
+          { backgroundColor: c.surface, borderColor: c.border },
+          pressed && styles.pressed,
+        ]}
+      >
+        {entry.photoUrl ? (
+          <Image
+            source={{ uri: entry.photoUrl }}
+            style={styles.thumb}
+            contentFit="cover"
+            transition={150}
+          />
+        ) : (
+          <View style={[styles.thumb, styles.thumbPlaceholder, { backgroundColor: c.surfaceAlt }]}>
+            <Ionicons name="document-text-outline" size={22} color={c.textMuted} />
+          </View>
+        )}
 
-      <View style={styles.body}>
-        <Text numberOfLines={1} style={[styles.title, { color: c.text }]}>
-          {entry.title}
-        </Text>
-        {entry.note ? (
-          <Text numberOfLines={2} style={[styles.note, { color: c.textMuted }]}>
-            {entry.note}
+        <View style={styles.body}>
+          <Text numberOfLines={1} style={[styles.title, { color: c.text }]}>
+            {entry.title}
           </Text>
-        ) : null}
-        <View style={styles.metaRow}>
-          {entry.location?.placeName ? (
-            <Text numberOfLines={1} style={[styles.meta, { color: c.primary }]}>
-              {entry.location.placeName}
+          {entry.note ? (
+            <Text numberOfLines={2} style={[styles.note, { color: c.textMuted }]}>
+              {entry.note}
             </Text>
           ) : null}
-          <Text style={[styles.meta, { color: c.textMuted }]}>{formatDate(entry.entryDate)}</Text>
+          <View style={styles.metaRow}>
+            {entry.location?.placeName ? (
+              <Text numberOfLines={1} style={[styles.meta, { color: c.primary }]}>
+                {entry.location.placeName}
+              </Text>
+            ) : null}
+            <Text style={[styles.meta, { color: c.textMuted }]}>{formatDate(entry.entryDate)}</Text>
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 }
 

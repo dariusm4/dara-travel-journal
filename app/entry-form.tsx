@@ -23,6 +23,7 @@ import { getCurrentWeather } from '@/services/weather';
 import { useAppSelector } from '@/store/hooks';
 import type { Entry, GeoLocation, Weather } from '@/types';
 import { todayISO } from '@/utils/date';
+import { haptics } from '@/utils/haptics';
 import { isNonEmpty, withinMaxLength } from '@/utils/validation';
 
 const MAX_TITLE = 80;
@@ -115,6 +116,7 @@ export default function EntryFormScreen() {
           await updateEntry(uid, tripId, entryId, { photoUrl: url });
         }
       }
+      haptics.success();
       router.back();
     } catch {
       setFormError('Could not save. Check your connection and try again.');

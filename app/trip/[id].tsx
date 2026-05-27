@@ -16,15 +16,17 @@ import { EntryCard } from '@/components/journal/EntryCard';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
+import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
 import { useEntriesSync } from '@/hooks/useEntriesSync';
 import { useTheme } from '@/hooks/useTheme';
 import { generateTripStory } from '@/services/ai';
-import { deleteTrip, updateTrip } from '@/services/firestore';
+import { deleteEntry, deleteTrip, updateTrip } from '@/services/firestore';
 import { useAppSelector } from '@/store/hooks';
 import { selectTripById } from '@/store/slices/tripsSlice';
 import type { Entry } from '@/types';
 import { daysBetween, formatDateRange } from '@/utils/date';
+import { haptics } from '@/utils/haptics';
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,6 +54,7 @@ export default function TripDetailScreen() {
     try {
       const story = await generateTripStory(trip, entries);
       await updateTrip(uid, id, { story });
+      haptics.success();
     } catch (e) {
       setStoryError(e instanceof Error ? e.message : 'Could not generate the story.');
     } finally {
@@ -66,6 +69,7 @@ export default function TripDetailScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
+          haptics.warning();
           try {
             if (uid) await deleteTrip(uid, id);
             router.back();
@@ -77,9 +81,34 @@ export default function TripDetailScreen() {
     ]);
   }, [uid, id, router]);
 
+  const confirmDeleteEntry = useCallback(
+    (entry: Entry) => {
+      Alert.alert('Delete entry', `Delete "${entry.title}"?`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            haptics.warning();
+            try {
+              if (uid) await deleteEntry(uid, id, entry.id);
+            } catch {
+              Alert.alert('Could not delete', 'Please check your connection and try again.');
+            }
+          },
+        },
+      ]);
+    },
+    [uid, id],
+  );
+
   const renderItem = useCallback(
-    ({ item }: { item: Entry }) => <EntryCard entry={item} onPress={openEntry} />,
-    [openEntry],
+    ({ item, index }: { item: Entry; index: number }) => (
+      <SwipeToDelete onDelete={() => confirmDeleteEntry(item)}>
+        <EntryCard entry={item} onPress={openEntry} index={index} />
+      </SwipeToDelete>
+    ),
+    [openEntry, confirmDeleteEntry],
   );
 
   if (!trip) {
