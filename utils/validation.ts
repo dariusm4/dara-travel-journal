@@ -5,7 +5,6 @@
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Firebase requires a minimum password length of 6. */
 export const MIN_PASSWORD_LENGTH = 6;
 
 export function isValidEmail(email: string): boolean {

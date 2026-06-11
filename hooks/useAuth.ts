@@ -2,7 +2,8 @@ import { useCallback } from 'react';
 
 import { authErrorMessage } from '@/services/auth';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { setAuthError, setSubmitting } from '@/store/slices/authSlice';
+import { setAuthError, setSubmitting, setUser } from '@/store/slices/authSlice';
+import type { UserProfile } from '@/types';
 
 /**
  * Wraps auth flow state (global, in Redux) and a `submit` helper that applies
@@ -14,11 +15,14 @@ export function useAuth() {
   const { user, status, submitting, authError } = useAppSelector((s) => s.auth);
 
   const submit = useCallback(
-    async (action: () => Promise<unknown>) => {
+    async (action: () => Promise<UserProfile>) => {
       dispatch(setAuthError(null));
       dispatch(setSubmitting(true));
       try {
-        await action();
+        const profile = await action();
+        // No Firebase listener anymore — drive the auth slice ourselves so the
+        // root guard flips to /(tabs).
+        dispatch(setUser(profile));
       } catch (error) {
         dispatch(setAuthError(authErrorMessage(error)));
       } finally {

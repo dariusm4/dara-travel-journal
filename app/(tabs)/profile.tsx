@@ -11,12 +11,14 @@ import {
   hasScheduledReminder,
   scheduleJournalReminder,
 } from '@/services/notifications';
-import { useAppSelector } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { setUser } from '@/store/slices/authSlice';
 import { haptics } from '@/utils/haptics';
 import { computeTripStats } from '@/utils/stats';
 
 export default function ProfileScreen() {
   const c = useTheme();
+  const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
   const stats = computeTripStats(useAppSelector((s) => s.trips.items));
   const [reminders, setReminders] = useState(false);
@@ -47,8 +49,11 @@ export default function ProfileScreen() {
 
   // The auth listener flips status to 'unauthenticated' and the root guard
   // redirects to /login; no manual navigation needed.
-  const onLogout = () => {
-    void signOutUser();
+  const onLogout = async () => {
+    await signOutUser();
+    // No auth listener anymore — flip Redux ourselves so the root guard
+    // redirects back to /login.
+    dispatch(setUser(null));
   };
 
   return (

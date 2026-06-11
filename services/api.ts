@@ -20,16 +20,25 @@ export function getToken(): string | null {
 
 export async function setToken(token: string | null): Promise<void> {
   currentToken = token;
-  if (token) {
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
-  } else {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+  try {
+    if (token) {
+      await SecureStore.setItemAsync(TOKEN_KEY, token);
+    } else {
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+    }
+  } catch {
+    // SecureStore is unavailable on web — keep the token in memory for this
+    // session so the rest of the flow still works for smoke testing.
   }
 }
 
 /** Read a previously stored JWT into memory. Called once on app boot. */
 export async function loadToken(): Promise<string | null> {
-  currentToken = await SecureStore.getItemAsync(TOKEN_KEY);
+  try {
+    currentToken = await SecureStore.getItemAsync(TOKEN_KEY);
+  } catch {
+    currentToken = null;
+  }
   return currentToken;
 }
 
