@@ -69,7 +69,10 @@ const entryCreate = z.object({
 const entryUpdate = z.object({
   title: z.string().min(1).max(80).optional(),
   note: z.string().max(2000).optional(),
-  entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  entryDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   location: location.optional(),
   weather: weather.optional(),
   photoUrl: z.string().optional(),
@@ -179,9 +182,7 @@ router.patch('/:entryId', (req: AuthedRequest, res) => {
     return;
   }
   values.push(entryId, req.userId);
-  db.prepare(`UPDATE entries SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`).run(
-    ...values,
-  );
+  db.prepare(`UPDATE entries SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`).run(...values);
   res.json({ ok: true });
 });
 

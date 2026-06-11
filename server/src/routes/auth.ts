@@ -3,13 +3,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import { db } from '../db';
-import {
-  hashPassword,
-  issueToken,
-  requireAuth,
-  verifyPassword,
-  type AuthedRequest,
-} from '../auth';
+import { hashPassword, issueToken, requireAuth, verifyPassword, type AuthedRequest } from '../auth';
 
 interface UserRow {
   id: string;

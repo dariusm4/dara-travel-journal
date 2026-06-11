@@ -7,8 +7,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
 import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
 import { spacing } from '@/constants/theme';
+import { useReloadJournal } from '@/hooks/useReloadJournal';
 import { useTheme } from '@/hooks/useTheme';
-import { deleteTrip } from '@/services/firestore';
+import { deleteTrip } from '@/services/journal';
 import { useAppSelector } from '@/store/hooks';
 import type { Trip } from '@/types';
 import { haptics } from '@/utils/haptics';
@@ -16,8 +17,8 @@ import { haptics } from '@/utils/haptics';
 export default function TripsScreen() {
   const c = useTheme();
   const router = useRouter();
-  const uid = useAppSelector((s) => s.auth.user?.uid);
   const { items, status } = useAppSelector((s) => s.trips);
+  const { reloadTrips } = useReloadJournal();
 
   const openTrip = useCallback((trip: Trip) => router.push(`/trip/${trip.id}`), [router]);
 
@@ -31,7 +32,8 @@ export default function TripsScreen() {
           onPress: async () => {
             haptics.warning();
             try {
-              if (uid) await deleteTrip(uid, trip.id);
+              await deleteTrip(trip.id);
+              await reloadTrips();
             } catch {
               Alert.alert('Could not delete', 'Please check your connection and try again.');
             }
@@ -39,7 +41,7 @@ export default function TripsScreen() {
         },
       ]);
     },
-    [uid],
+    [reloadTrips],
   );
 
   const renderItem = useCallback(

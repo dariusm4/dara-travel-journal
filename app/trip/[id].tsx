@@ -19,9 +19,11 @@ import { Screen } from '@/components/ui/Screen';
 import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
 import { useEntriesSync } from '@/hooks/useEntriesSync';
+import { useReloadJournal } from '@/hooks/useReloadJournal';
 import { useTheme } from '@/hooks/useTheme';
 import { generateTripStory } from '@/services/ai';
-import { deleteEntry, deleteTrip, updateTrip } from '@/services/firestore';
+import { photoSource } from '@/services/api';
+import { deleteEntry, deleteTrip, updateTrip } from '@/services/journal';
 import { useAppSelector } from '@/store/hooks';
 import { selectTripById } from '@/store/slices/tripsSlice';
 import type { Entry } from '@/types';
@@ -32,10 +34,10 @@ export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const c = useTheme();
   const router = useRouter();
-  const uid = useAppSelector((s) => s.auth.user?.uid);
   const trip = useAppSelector(selectTripById(id));
   const entries = useAppSelector((s) => s.entries.items);
   const entriesStatus = useAppSelector((s) => s.entries.status);
+  const { reloadTrips, reloadEntries } = useReloadJournal();
 
   useEntriesSync(id);
 
@@ -48,19 +50,20 @@ export default function TripDetailScreen() {
   );
 
   const onGenerateStory = useCallback(async () => {
-    if (!uid || !trip) return;
+    if (!trip) return;
     setStoryError(null);
     setStoryLoading(true);
     try {
       const story = await generateTripStory(trip, entries);
-      await updateTrip(uid, id, { story });
+      await updateTrip(id, { story });
+      await reloadTrips();
       haptics.success();
     } catch (e) {
       setStoryError(e instanceof Error ? e.message : 'Could not generate the story.');
     } finally {
       setStoryLoading(false);
     }
-  }, [uid, trip, entries, id]);
+  }, [trip, entries, id, reloadTrips]);
 
   const confirmDelete = useCallback(() => {
     Alert.alert('Delete trip', 'This permanently removes the trip and all of its entries.', [
@@ -71,7 +74,8 @@ export default function TripDetailScreen() {
         onPress: async () => {
           haptics.warning();
           try {
-            if (uid) await deleteTrip(uid, id);
+            await deleteTrip(id);
+            await reloadTrips();
             router.back();
           } catch {
             Alert.alert('Could not delete', 'Please check your connection and try again.');
@@ -79,7 +83,7 @@ export default function TripDetailScreen() {
         },
       },
     ]);
-  }, [uid, id, router]);
+  }, [id, router, reloadTrips]);
 
   const confirmDeleteEntry = useCallback(
     (entry: Entry) => {
@@ -91,7 +95,8 @@ export default function TripDetailScreen() {
           onPress: async () => {
             haptics.warning();
             try {
-              if (uid) await deleteEntry(uid, id, entry.id);
+              await deleteEntry(id, entry.id);
+              await reloadEntries(id);
             } catch {
               Alert.alert('Could not delete', 'Please check your connection and try again.');
             }
@@ -99,7 +104,7 @@ export default function TripDetailScreen() {
         },
       ]);
     },
-    [uid, id],
+    [id, reloadEntries],
   );
 
   const renderItem = useCallback(
@@ -124,7 +129,7 @@ export default function TripDetailScreen() {
   const header = (
     <View>
       {trip.coverPhotoUrl ? (
-        <Image source={{ uri: trip.coverPhotoUrl }} style={styles.cover} contentFit="cover" />
+        <Image source={photoSource(trip.coverPhotoUrl)} style={styles.cover} contentFit="cover" />
       ) : null}
 
       <Text style={[styles.title, { color: c.text }]}>{trip.title}</Text>

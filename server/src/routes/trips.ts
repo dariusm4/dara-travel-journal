@@ -45,8 +45,14 @@ const tripCreate = z.object({
 const tripUpdate = z.object({
   title: z.string().min(1).max(80).optional(),
   destination: z.string().min(1).max(80).optional(),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   story: z.string().max(4000).optional(),
   // App can clear the remote-fetched Unsplash cover by setting '' here.
   coverPhotoUrl: z.string().optional(),

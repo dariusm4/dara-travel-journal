@@ -49,7 +49,9 @@ router.post('/chat', async (req, res) => {
     });
     if (!upstream.ok) {
       const detail = await upstream.text();
-      res.status(upstream.status).json({ error: 'AI request failed', detail: detail.slice(0, 200) });
+      res
+        .status(upstream.status)
+        .json({ error: 'AI request failed', detail: detail.slice(0, 200) });
       return;
     }
     const data = (await upstream.json()) as OpenAiResponse;

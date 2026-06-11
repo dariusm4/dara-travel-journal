@@ -1,53 +1,56 @@
-import { Directory, File, Paths } from 'expo-file-system';
+import { apiUpload } from './api';
 
 /**
- * Photos are stored on the device under the app's persistent document
- * directory. The Firestore entry/trip references the resulting `file://` URI,
- * so photos survive app restarts (they're lost on uninstall, which is the
- * accepted trade-off for keeping the project free-tier and infra-free).
+ * Photo "storage" now means: POST the local file to the backend, which writes
+ * it under `data/photos/<uuid>.jpg` and returns the public path the app should
+ * persist on the entry/trip. These names are kept (saveEntryPhoto / saveTripCover
+ * / deleteEntryPhoto) so the form components don't have to change.
  */
 
-const PHOTOS_DIR = new Directory(Paths.document, 'dara', 'photos');
-const COVERS_DIR = new Directory(Paths.document, 'dara', 'covers');
-
-function ensure(dir: Directory): void {
-  if (!dir.exists) dir.create({ intermediates: true });
+interface UploadResponse {
+  photoUrl: string;
 }
 
-function persist(srcUri: string, dest: File): string {
-  if (dest.exists) dest.delete();
-  const src = new File(srcUri);
-  src.copy(dest);
-  return dest.uri;
+function fileForm(localUri: string, name: string): FormData {
+  const form = new FormData();
+  // React Native's FormData accepts file objects of this shape (not Blob).
+  form.append('file', { uri: localUri, name, type: 'image/jpeg' } as unknown as Blob);
+  return form;
 }
 
-/** Copies a picked entry photo into persistent storage and returns its URI. */
 export async function saveEntryPhoto(
   _uid: string,
   tripId: string,
   entryId: string,
   localUri: string,
 ): Promise<string> {
-  ensure(PHOTOS_DIR);
-  return persist(localUri, new File(PHOTOS_DIR, `${tripId}_${entryId}.jpg`));
+  const data = await apiUpload<UploadResponse>(
+    `/trips/${tripId}/entries/${entryId}/photo`,
+    fileForm(localUri, `${entryId}.jpg`),
+  );
+  return data.photoUrl;
 }
 
-/** Copies a picked trip cover photo into persistent storage and returns its URI. */
 export async function saveTripCover(
   _uid: string,
   tripId: string,
   localUri: string,
 ): Promise<string> {
-  ensure(COVERS_DIR);
-  return persist(localUri, new File(COVERS_DIR, `${tripId}.jpg`));
+  const data = await apiUpload<UploadResponse>(
+    `/trips/${tripId}/cover`,
+    fileForm(localUri, `cover-${tripId}.jpg`),
+  );
+  return data.photoUrl;
 }
 
-/** Removes an entry's stored photo, if present. Safe to call when missing. */
+/**
+ * Removing a photo from an entry happens implicitly via PATCH photoUrl=''.
+ * Old photo files orphaned by edits are cleaned up on trip delete (cascade).
+ */
 export async function deleteEntryPhoto(
   _uid: string,
-  tripId: string,
-  entryId: string,
+  _tripId: string,
+  _entryId: string,
 ): Promise<void> {
-  const file = new File(PHOTOS_DIR, `${tripId}_${entryId}.jpg`);
-  if (file.exists) file.delete();
+  // no-op
 }

@@ -14,8 +14,10 @@ import {
 
 import { Screen } from '@/components/ui/Screen';
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
+import { useReloadJournal } from '@/hooks/useReloadJournal';
 import { useTheme } from '@/hooks/useTheme';
-import { deleteEntry } from '@/services/firestore';
+import { photoSource } from '@/services/api';
+import { deleteEntry } from '@/services/journal';
 import { useAppSelector } from '@/store/hooks';
 import { formatDate } from '@/utils/date';
 
@@ -23,8 +25,8 @@ export default function EntryDetailScreen() {
   const { id, tripId } = useLocalSearchParams<{ id: string; tripId: string }>();
   const c = useTheme();
   const router = useRouter();
-  const uid = useAppSelector((s) => s.auth.user?.uid);
   const entry = useAppSelector((s) => s.entries.items.find((e) => e.id === id));
+  const { reloadEntries } = useReloadJournal();
 
   const confirmDelete = useCallback(() => {
     Alert.alert('Delete entry', 'This permanently removes this entry.', [
@@ -34,7 +36,10 @@ export default function EntryDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            if (uid && tripId) await deleteEntry(uid, tripId, id);
+            if (tripId) {
+              await deleteEntry(tripId, id);
+              await reloadEntries(tripId);
+            }
             router.back();
           } catch {
             Alert.alert('Could not delete', 'Please check your connection and try again.');
@@ -42,7 +47,7 @@ export default function EntryDetailScreen() {
         },
       },
     ]);
-  }, [uid, tripId, id, router]);
+  }, [tripId, id, router, reloadEntries]);
 
   if (!entry) {
     return (
@@ -81,7 +86,7 @@ export default function EntryDetailScreen() {
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {entry.photoUrl ? (
-          <Image source={{ uri: entry.photoUrl }} style={styles.photo} contentFit="cover" />
+          <Image source={photoSource(entry.photoUrl)} style={styles.photo} contentFit="cover" />
         ) : null}
 
         <Text style={[styles.title, { color: c.text }]}>{entry.title}</Text>

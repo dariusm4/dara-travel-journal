@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
 
 import { cacheKeys, getCached, setCached } from '@/services/cache';
-import { subscribeToEntries } from '@/services/firestore';
+import { listEntries } from '@/services/journal';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { entriesError, entriesLoaded, entriesLoading } from '@/store/slices/entriesSlice';
 import type { Entry } from '@/types';
 
 /**
- * Syncs the entries slice with a single trip's entries (cache-first, then
- * live). Mount on the trip detail screen with that trip's id.
+ * Cache-first sync of a single trip's entries (criterion 13). Mount this on
+ * the trip-detail screen with the trip's id.
  */
 export function useEntriesSync(tripId: string | undefined) {
   const dispatch = useAppDispatch();
@@ -17,26 +17,28 @@ export function useEntriesSync(tripId: string | undefined) {
   useEffect(() => {
     if (!uid || !tripId) return;
 
-    let active = true;
+    let alive = true;
     dispatch(entriesLoading(tripId));
 
     getCached<Entry[]>(cacheKeys.entries(uid, tripId)).then((cached) => {
-      if (active && cached) dispatch(entriesLoaded(cached));
+      if (alive && cached) dispatch(entriesLoaded(cached));
     });
 
-    const unsubscribe = subscribeToEntries(
-      uid,
-      tripId,
-      (entries) => {
+    (async () => {
+      try {
+        const entries = await listEntries(tripId);
+        if (!alive) return;
         dispatch(entriesLoaded(entries));
         void setCached(cacheKeys.entries(uid, tripId), entries);
-      },
-      () => dispatch(entriesError('Could not load entries. Check your connection and try again.')),
-    );
+      } catch {
+        if (alive) {
+          dispatch(entriesError('Could not load entries. Check your connection and try again.'));
+        }
+      }
+    })();
 
     return () => {
-      active = false;
-      unsubscribe();
+      alive = false;
     };
   }, [uid, tripId, dispatch]);
 }

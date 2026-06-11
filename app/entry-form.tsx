@@ -16,8 +16,9 @@ import { PhotoPicker } from '@/components/ui/PhotoPicker';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { fontSize, spacing } from '@/constants/theme';
+import { useReloadJournal } from '@/hooks/useReloadJournal';
 import { useTheme } from '@/hooks/useTheme';
-import { createEntry, updateEntry } from '@/services/firestore';
+import { createEntry, updateEntry } from '@/services/journal';
 import { deleteEntryPhoto, saveEntryPhoto } from '@/services/storage';
 import { getCurrentWeather } from '@/services/weather';
 import { useAppSelector } from '@/store/hooks';
@@ -34,10 +35,10 @@ export default function EntryFormScreen() {
   const editing = Boolean(id);
   const c = useTheme();
   const router = useRouter();
-  const uid = useAppSelector((s) => s.auth.user?.uid);
   const existing = useAppSelector((s) =>
     id ? s.entries.items.find((e) => e.id === id) : undefined,
   );
+  const { reloadEntries } = useReloadJournal();
 
   const [title, setTitle] = useState(existing?.title ?? '');
   const [note, setNote] = useState(existing?.note ?? '');
@@ -81,7 +82,7 @@ export default function EntryFormScreen() {
 
   const onSave = async () => {
     setFormError(null);
-    if (!validate() || !uid || !tripId) return;
+    if (!validate() || !tripId) return;
     setSubmitting(true);
     try {
       if (editing && id) {
@@ -94,28 +95,27 @@ export default function EntryFormScreen() {
         };
         if (photoChanged) {
           if (photoUri) {
-            patch.photoUrl = await saveEntryPhoto(uid, tripId, id, photoUri);
+            patch.photoUrl = await saveEntryPhoto('', tripId, id, photoUri);
           } else {
             patch.photoUrl = '';
-            void deleteEntryPhoto(uid, tripId, id);
+            void deleteEntryPhoto('', tripId, id);
           }
         }
-        await updateEntry(uid, tripId, id, patch);
+        await updateEntry(tripId, id, patch);
       } else {
-        const entryId = await createEntry(uid, tripId, {
-          tripId,
+        const entryId = await createEntry(tripId, {
           title: title.trim(),
           note: note.trim(),
           entryDate,
           location: location ?? undefined,
           weather: weather ?? undefined,
-          createdAt: Date.now(),
         });
         if (photoUri) {
-          const url = await saveEntryPhoto(uid, tripId, entryId, photoUri);
-          await updateEntry(uid, tripId, entryId, { photoUrl: url });
+          const url = await saveEntryPhoto('', tripId, entryId, photoUri);
+          await updateEntry(tripId, entryId, { photoUrl: url });
         }
       }
+      await reloadEntries(tripId);
       haptics.success();
       router.back();
     } catch {

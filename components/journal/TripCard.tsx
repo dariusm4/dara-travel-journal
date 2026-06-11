@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { fontSize, fontWeight, radius, shadow, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { photoSource } from '@/services/api';
 import type { Trip } from '@/types';
 import { formatDateRange } from '@/utils/date';
 
@@ -31,7 +32,7 @@ function TripCardComponent({ trip, onPress, index = 0 }: TripCardProps) {
       >
         {trip.coverPhotoUrl ? (
           <Image
-            source={{ uri: trip.coverPhotoUrl }}
+            source={photoSource(trip.coverPhotoUrl)}
             style={styles.cover}
             contentFit="cover"
             transition={200}

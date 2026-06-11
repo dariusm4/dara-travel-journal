@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { photoSource } from '@/services/api';
 import type { Entry } from '@/types';
 import { formatDate } from '@/utils/date';
 
@@ -30,7 +31,7 @@ function EntryCardComponent({ entry, onPress, index = 0 }: EntryCardProps) {
       >
         {entry.photoUrl ? (
           <Image
-            source={{ uri: entry.photoUrl }}
+            source={photoSource(entry.photoUrl)}
             style={styles.thumb}
             contentFit="cover"
             transition={150}

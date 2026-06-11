@@ -4,6 +4,7 @@ import { Alert, Pressable, StyleSheet, Text, View, type AlertButton } from 'reac
 
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { photoSource } from '@/services/api';
 import { captureWithCamera, pickFromLibrary } from '@/services/media';
 
 interface PhotoPickerProps {
@@ -54,7 +55,7 @@ export function PhotoPicker({ label, uri, onChange, height = 180 }: PhotoPickerP
         ]}
       >
         {uri ? (
-          <Image source={{ uri }} style={styles.image} contentFit="cover" />
+          <Image source={photoSource(uri)} style={styles.image} contentFit="cover" />
         ) : (
           <View style={styles.placeholder}>
             <Ionicons name="camera-outline" size={28} color={c.textMuted} />

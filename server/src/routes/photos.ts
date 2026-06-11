@@ -70,9 +70,7 @@ router.post(
       return;
     }
     const owned = db
-      .prepare(
-        'SELECT photo FROM entries WHERE id = ? AND trip_id = ? AND user_id = ?',
-      )
+      .prepare('SELECT photo FROM entries WHERE id = ? AND trip_id = ? AND user_id = ?')
       .get(entryId, tripId, req.userId!) as { photo: string | null } | undefined;
     if (!owned) {
       await unlink(req.file.path).catch(() => {});
@@ -99,7 +97,9 @@ router.get('/photos/:filename', requireAuth, (req: AuthedRequest, res) => {
     return;
   }
   const owned =
-    db.prepare('SELECT 1 FROM trips WHERE cover_photo = ? AND user_id = ?').get(filename, req.userId!) ||
+    db
+      .prepare('SELECT 1 FROM trips WHERE cover_photo = ? AND user_id = ?')
+      .get(filename, req.userId!) ||
     db.prepare('SELECT 1 FROM entries WHERE photo = ? AND user_id = ?').get(filename, req.userId!);
   if (!owned) {
     res.status(404).end();

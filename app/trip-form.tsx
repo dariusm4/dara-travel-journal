@@ -16,8 +16,9 @@ import { PhotoPicker } from '@/components/ui/PhotoPicker';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { fontSize, spacing } from '@/constants/theme';
+import { useReloadJournal } from '@/hooks/useReloadJournal';
 import { useTheme } from '@/hooks/useTheme';
-import { createTrip, updateTrip } from '@/services/firestore';
+import { createTrip, updateTrip } from '@/services/journal';
 import { saveTripCover } from '@/services/storage';
 import { findDestinationPhoto } from '@/services/unsplash';
 import { useAppSelector } from '@/store/hooks';
@@ -27,8 +28,8 @@ import { haptics } from '@/utils/haptics';
 import { isNonEmpty, withinMaxLength } from '@/utils/validation';
 
 /** Stores a cover: keep remote (Unsplash) URLs as-is; upload local files. */
-async function resolveCoverUrl(uid: string, tripId: string, uri: string): Promise<string> {
-  return uri.startsWith('http') ? uri : saveTripCover(uid, tripId, uri);
+async function resolveCoverUrl(tripId: string, uri: string): Promise<string> {
+  return uri.startsWith('http') ? uri : saveTripCover('', tripId, uri);
 }
 
 const MAX_TITLE = 80;
@@ -38,10 +39,10 @@ export default function TripFormScreen() {
   const editing = Boolean(id);
   const c = useTheme();
   const router = useRouter();
-  const uid = useAppSelector((s) => s.auth.user?.uid);
   const existing = useAppSelector((s) =>
     id ? (s.trips.items.find((t) => t.id === id) ?? null) : null,
   );
+  const { reloadTrips } = useReloadJournal();
 
   const [title, setTitle] = useState(existing?.title ?? '');
   const [destination, setDestination] = useState(existing?.destination ?? '');
@@ -90,7 +91,7 @@ export default function TripFormScreen() {
 
   const onSave = async () => {
     setFormError(null);
-    if (!validate() || !uid) return;
+    if (!validate()) return;
     setSubmitting(true);
     try {
       if (editing && id) {
@@ -101,23 +102,23 @@ export default function TripFormScreen() {
           endDate,
         };
         if (coverChanged) {
-          patch.coverPhotoUrl = coverUri ? await resolveCoverUrl(uid, id, coverUri) : '';
+          patch.coverPhotoUrl = coverUri ? await resolveCoverUrl(id, coverUri) : '';
         }
-        await updateTrip(uid, id, patch);
+        await updateTrip(id, patch);
       } else {
-        const tripId = await createTrip(uid, {
+        const tripId = await createTrip({
           title: title.trim(),
           destination: destination.trim(),
           startDate,
           endDate,
-          createdAt: Date.now(),
         });
         if (coverUri) {
-          await updateTrip(uid, tripId, {
-            coverPhotoUrl: await resolveCoverUrl(uid, tripId, coverUri),
+          await updateTrip(tripId, {
+            coverPhotoUrl: await resolveCoverUrl(tripId, coverUri),
           });
         }
       }
+      await reloadTrips();
       haptics.success();
       router.back();
     } catch {
