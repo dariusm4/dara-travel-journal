@@ -18,7 +18,7 @@ import { TextField } from '@/components/ui/TextField';
 import { fontSize, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createTrip, updateTrip } from '@/services/firestore';
-import { uploadTripCover } from '@/services/storage';
+import { saveTripCover } from '@/services/storage';
 import { findDestinationPhoto } from '@/services/unsplash';
 import { useAppSelector } from '@/store/hooks';
 import type { Trip } from '@/types';
@@ -28,7 +28,7 @@ import { isNonEmpty, withinMaxLength } from '@/utils/validation';
 
 /** Stores a cover: keep remote (Unsplash) URLs as-is; upload local files. */
 async function resolveCoverUrl(uid: string, tripId: string, uri: string): Promise<string> {
-  return uri.startsWith('http') ? uri : uploadTripCover(uid, tripId, uri);
+  return uri.startsWith('http') ? uri : saveTripCover(uid, tripId, uri);
 }
 
 const MAX_TITLE = 80;

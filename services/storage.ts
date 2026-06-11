@@ -1,46 +1,53 @@
-import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-
-import { storage } from './firebase';
+import { Directory, File, Paths } from 'expo-file-system';
 
 /**
- * Uploads a locally captured/picked photo to Firebase Storage and returns its
- * download URL. Stored under users/{uid}/{tripId}/{entryId}.jpg so storage
- * rules can isolate per-user files.
+ * Photos are stored on the device under the app's persistent document
+ * directory. The Firestore entry/trip references the resulting `file://` URI,
+ * so photos survive app restarts (they're lost on uninstall, which is the
+ * accepted trade-off for keeping the project free-tier and infra-free).
  */
-export async function uploadEntryPhoto(
-  uid: string,
+
+const PHOTOS_DIR = new Directory(Paths.document, 'dara', 'photos');
+const COVERS_DIR = new Directory(Paths.document, 'dara', 'covers');
+
+function ensure(dir: Directory): void {
+  if (!dir.exists) dir.create({ intermediates: true });
+}
+
+function persist(srcUri: string, dest: File): string {
+  if (dest.exists) dest.delete();
+  const src = new File(srcUri);
+  src.copy(dest);
+  return dest.uri;
+}
+
+/** Copies a picked entry photo into persistent storage and returns its URI. */
+export async function saveEntryPhoto(
+  _uid: string,
   tripId: string,
   entryId: string,
   localUri: string,
 ): Promise<string> {
-  const response = await fetch(localUri);
-  const blob = await response.blob();
-  const objectRef = ref(storage, `users/${uid}/${tripId}/${entryId}.jpg`);
-  await uploadBytes(objectRef, blob);
-  return getDownloadURL(objectRef);
+  ensure(PHOTOS_DIR);
+  return persist(localUri, new File(PHOTOS_DIR, `${tripId}_${entryId}.jpg`));
 }
 
-/** Uploads a trip cover photo and returns its download URL. */
-export async function uploadTripCover(
-  uid: string,
+/** Copies a picked trip cover photo into persistent storage and returns its URI. */
+export async function saveTripCover(
+  _uid: string,
   tripId: string,
   localUri: string,
 ): Promise<string> {
-  const response = await fetch(localUri);
-  const blob = await response.blob();
-  const objectRef = ref(storage, `users/${uid}/${tripId}/cover.jpg`);
-  await uploadBytes(objectRef, blob);
-  return getDownloadURL(objectRef);
+  ensure(COVERS_DIR);
+  return persist(localUri, new File(COVERS_DIR, `${tripId}.jpg`));
 }
 
+/** Removes an entry's stored photo, if present. Safe to call when missing. */
 export async function deleteEntryPhoto(
-  uid: string,
+  _uid: string,
   tripId: string,
   entryId: string,
 ): Promise<void> {
-  try {
-    await deleteObject(ref(storage, `users/${uid}/${tripId}/${entryId}.jpg`));
-  } catch {
-    // Photo may not exist; deletion is best-effort.
-  }
+  const file = new File(PHOTOS_DIR, `${tripId}_${entryId}.jpg`);
+  if (file.exists) file.delete();
 }

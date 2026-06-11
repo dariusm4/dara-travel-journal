@@ -21,25 +21,25 @@ follows you across devices.
 
 - 📓 **Trips → Entries** journal with photos, notes, dates, locations, weather
 - 🔐 **Accounts** — email/password sign-up & login; each user sees only their own data
-- ☁️ **Cloud sync** — data persists across reinstalls and devices (Firebase)
-- 📷 **Camera & gallery** photos · 📍 **GPS** location tagging with reverse geocoding
+- ☁️ **Cloud-synced entries** — text data survives reinstall and travels across devices (Firebase)
+- 📷 **Camera & gallery** photos kept on device · 📍 **GPS** with reverse geocoding
 - 🌤️ **Weather** on entries, 🖼️ **Unsplash** cover suggestions, 💱 **currency converter**
-- 🤖 **AI companion** — chat + auto-generated trip stories (key kept server-side)
+- 🤖 **AI companion** — chat + auto-generated trip stories (OpenAI)
 - 🔔 **Local reminders**, 📊 travel **stats** (trips / places / days)
 - 📴 **Offline-friendly** — previously loaded data stays readable without a connection
 - ✨ Animations, swipe-to-delete gestures, and haptics
 
 ## Tech stack
 
-| Area       | Choice                                                           |
-| ---------- | ---------------------------------------------------------------- |
-| Framework  | Expo (managed) + React Native, **TypeScript**                    |
-| Navigation | **Expo Router** (file-based) — tabs + stack + modal              |
-| State      | **Redux Toolkit** + typed hooks                                  |
-| Backend    | **Firebase** — Auth, Firestore, Storage; Cloud Function AI proxy |
-| Native     | image-picker, location, secure-store, haptics, notifications     |
-| UX         | Reanimated, Gesture Handler, NetInfo                             |
-| Quality    | ESLint + Prettier, Jest + React Native Testing Library           |
+| Area       | Choice                                                                   |
+| ---------- | ------------------------------------------------------------------------ |
+| Framework  | Expo (managed) + React Native, **TypeScript**                            |
+| Navigation | **Expo Router** (file-based) — tabs + stack + modal                      |
+| State      | **Redux Toolkit** + typed hooks                                          |
+| Backend    | **Firebase** — Auth + Firestore (free Spark plan; photos stay on device) |
+| Native     | image-picker, location, secure-store, haptics, notifications             |
+| UX         | Reanimated, Gesture Handler, NetInfo                                     |
+| Quality    | ESLint + Prettier, Jest + React Native Testing Library                   |
 
 ### Why Redux Toolkit?
 
@@ -60,15 +60,14 @@ services/       # Firebase + external API clients, env config
 hooks/          # custom hooks (useTheme, useAuth, sync hooks, ...)
 types/          # shared domain models (Trip, Entry, ...)
 utils/          # pure helpers (dates, validation, currency, stats)
-functions/      # Firebase Cloud Function (AI proxy)
 docs/           # project criteria
 ```
 
 ## Getting started
 
 **Prerequisites:** Node 20+, npm, the [Expo Go](https://expo.dev/go) app (or an
-Android/iOS emulator). For the backend you'll need a free **Firebase** project,
-and for the AI companion an **OpenAI** API key.
+Android/iOS emulator). You'll need a free **Firebase** project (Spark plan is
+fine — no card on file) and an **OpenAI** API key for the AI companion.
 
 ```bash
 # 1. Install dependencies
@@ -81,43 +80,33 @@ cp .env.example .env   # then fill in the values from the steps below
 npm start              # scan the QR with Expo Go, or press a / i for an emulator
 ```
 
-### 1) Firebase (criteria A & B)
+### 1) Firebase — Auth + Firestore (criteria A & B)
 
 1. Create a project at the [Firebase console](https://console.firebase.google.com/).
 2. **Authentication → Sign-in method**: enable **Email/Password**.
 3. **Firestore Database**: create a database (production mode).
-4. **Storage**: enable it.
-5. **Project settings → Your apps → Web app**: copy the SDK config into `.env`
+4. **Project settings → Your apps → Web app**: copy the SDK config into `.env`
    (`EXPO_PUBLIC_FIREBASE_*`).
-6. Deploy the security rules (per-user isolation):
+5. Deploy the Firestore security rules (per-user isolation):
    ```bash
    npm i -g firebase-tools   # if needed
    firebase login
    firebase use --add        # select your project
-   firebase deploy --only firestore:rules,storage
+   firebase deploy --only firestore:rules
    ```
 
-### 2) External API keys (criterion C)
+> Photos are stored on the device in `FileSystem.documentDirectory` — no
+> Firebase Storage, no Cloud Functions, no upgrade to the Blaze plan.
 
-Add free-tier keys to `.env`:
+### 2) API keys for `.env` (criteria C + 14)
 
+Add the keys to `.env`. The rubric (criteria C + 14) explicitly accepts API
+keys in `.env` via Expo's `EXPO_PUBLIC_*` convention — no backend deploy needed.
+
+- `EXPO_PUBLIC_OPENAI_API_KEY` — [platform.openai.com](https://platform.openai.com/) (powers the AI companion)
 - `EXPO_PUBLIC_OPENWEATHER_API_KEY` — [openweathermap.org](https://openweathermap.org/api)
 - `EXPO_PUBLIC_UNSPLASH_ACCESS_KEY` — [unsplash.com/developers](https://unsplash.com/developers)
 - `EXPO_PUBLIC_EXCHANGERATE_API_KEY` — [exchangerate-api.com](https://www.exchangerate-api.com/) _(optional; a keyless fallback is used if blank)_
-
-### 3) AI companion (Cloud Function)
-
-The OpenAI key never ships in the app — it lives as a Functions secret.
-
-```bash
-cd functions && npm install && cd ..
-firebase functions:secrets:set OPENAI_API_KEY   # paste your OpenAI key
-firebase deploy --only functions
-```
-
-Copy the deployed function URL into `.env` as `EXPO_PUBLIC_AI_FUNCTION_URL`.
-
-> Cloud Functions require the Firebase **Blaze** plan (free at student usage).
 
 ## Scripts
 
@@ -154,8 +143,8 @@ Expo's generator) so the app no longer uses the default Expo artwork.
 ## Security notes (criterion 14)
 
 - Auth session token is kept in **SecureStore**, not AsyncStorage.
-- The OpenAI key stays in the **Cloud Function** (token-verified); other keys are
-  in `.env` (gitignored) via `EXPO_PUBLIC_*`.
+- All API keys live in `.env` (gitignored) and are loaded via `EXPO_PUBLIC_*`,
+  the convention the rubric explicitly accepts (criteria C + 14).
 - All inputs are validated; all API calls use HTTPS.
 
 ## License

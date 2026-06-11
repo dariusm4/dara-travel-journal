@@ -18,7 +18,7 @@ import { TextField } from '@/components/ui/TextField';
 import { fontSize, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createEntry, updateEntry } from '@/services/firestore';
-import { deleteEntryPhoto, uploadEntryPhoto } from '@/services/storage';
+import { deleteEntryPhoto, saveEntryPhoto } from '@/services/storage';
 import { getCurrentWeather } from '@/services/weather';
 import { useAppSelector } from '@/store/hooks';
 import type { Entry, GeoLocation, Weather } from '@/types';
@@ -94,7 +94,7 @@ export default function EntryFormScreen() {
         };
         if (photoChanged) {
           if (photoUri) {
-            patch.photoUrl = await uploadEntryPhoto(uid, tripId, id, photoUri);
+            patch.photoUrl = await saveEntryPhoto(uid, tripId, id, photoUri);
           } else {
             patch.photoUrl = '';
             void deleteEntryPhoto(uid, tripId, id);
@@ -112,7 +112,7 @@ export default function EntryFormScreen() {
           createdAt: Date.now(),
         });
         if (photoUri) {
-          const url = await uploadEntryPhoto(uid, tripId, entryId, photoUri);
+          const url = await saveEntryPhoto(uid, tripId, entryId, photoUri);
           await updateEntry(uid, tripId, entryId, { photoUrl: url });
         }
       }

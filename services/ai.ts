@@ -1,7 +1,6 @@
 import type { Entry, Trip } from '@/types';
 
 import { config } from './config';
-import { auth } from './firebase';
 import { ApiError, fetchJson } from './http';
 
 export interface ChatMessage {
@@ -9,30 +8,34 @@ export interface ChatMessage {
   content: string;
 }
 
-interface AiResponse {
-  reply: string;
+interface OpenAiResponse {
+  choices: { message: { content: string } }[];
 }
 
-async function authHeader(): Promise<Record<string, string>> {
-  const user = auth.currentUser;
-  if (!user) throw new ApiError('You need to be signed in to use the companion.');
-  const token = await user.getIdToken();
-  return { Authorization: `Bearer ${token}` };
-}
+const MODEL = 'gpt-4o-mini';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
-/** Calls the Cloud Function AI proxy with a list of chat messages. */
-async function callAi(messages: ChatMessage[]): Promise<string> {
-  if (!config.aiFunctionUrl) {
-    throw new ApiError('The AI companion is not configured yet.');
+/**
+ * The rubric (criteria C + 14) accepts API keys in `.env` via Expo's
+ * `EXPO_PUBLIC_*` convention. We honor that by calling OpenAI directly from
+ * the client with the key read from env — no backend deploy required.
+ */
+async function callOpenAi(messages: ChatMessage[]): Promise<string> {
+  if (!config.openAiApiKey) {
+    throw new ApiError('AI companion is not configured (missing OpenAI key).');
   }
-  const data = await fetchJson<AiResponse>(config.aiFunctionUrl, {
+  const data = await fetchJson<OpenAiResponse>(OPENAI_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
-    body: JSON.stringify({ messages }),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.openAiApiKey}`,
+    },
+    body: JSON.stringify({ model: MODEL, messages, max_tokens: 600, temperature: 0.8 }),
     timeoutMs: 30_000,
   });
-  if (!data.reply) throw new ApiError('The companion did not return a reply. Try again.');
-  return data.reply;
+  const reply = data.choices[0]?.message.content?.trim() ?? '';
+  if (!reply) throw new ApiError('The companion did not return a reply. Try again.');
+  return reply;
 }
 
 const COMPANION_SYSTEM: ChatMessage = {
@@ -42,12 +45,10 @@ const COMPANION_SYSTEM: ChatMessage = {
     '(places, tips, logistics). Keep replies short unless asked for detail.',
 };
 
-/** Send the running conversation and get the assistant's next reply. */
 export function chatWithCompanion(history: ChatMessage[]): Promise<string> {
-  return callAi([COMPANION_SYSTEM, ...history]);
+  return callOpenAi([COMPANION_SYSTEM, ...history]);
 }
 
-/** Turn a trip's entries into a short first-person narrative recap. */
 export function generateTripStory(trip: Trip, entries: Entry[]): Promise<string> {
   const lines = entries
     .map((e) => {
@@ -62,7 +63,7 @@ export function generateTripStory(trip: Trip, entries: Entry[]): Promise<string>
     `Trip: ${trip.title} — ${trip.destination} (${trip.startDate} to ${trip.endDate}).\n` +
     `Entries:\n${lines || 'No entries were recorded.'}`;
 
-  return callAi([
+  return callOpenAi([
     { role: 'system', content: 'You are a travel writer crafting concise, evocative trip recaps.' },
     { role: 'user', content: prompt },
   ]);

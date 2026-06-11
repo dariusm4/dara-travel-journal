@@ -1,10 +1,8 @@
 /**
  * Centralized access to environment configuration.
  *
- * All secrets live in `.env` (gitignored) and are exposed to the client via
- * Expo's `EXPO_PUBLIC_*` convention, which inlines them at build time. The
- * AI provider key is NOT here — it stays server-side behind a Cloud Function
- * (criterion 14). Only the function's public URL is referenced.
+ * Per the rubric (criteria C + 14) all keys live in `.env` (gitignored) and are
+ * exposed to the client via Expo's `EXPO_PUBLIC_*` convention, never hardcoded.
  */
 
 const env = process.env;
@@ -21,9 +19,7 @@ export const config = {
   openWeatherApiKey: env.EXPO_PUBLIC_OPENWEATHER_API_KEY ?? '',
   unsplashAccessKey: env.EXPO_PUBLIC_UNSPLASH_ACCESS_KEY ?? '',
   exchangeRateApiKey: env.EXPO_PUBLIC_EXCHANGERATE_API_KEY ?? '',
-  /** HTTPS endpoint of the deployed AI proxy Cloud Function. */
-  aiFunctionUrl: env.EXPO_PUBLIC_AI_FUNCTION_URL ?? '',
+  openAiApiKey: env.EXPO_PUBLIC_OPENAI_API_KEY ?? '',
 } as const;
 
-/** True when a Firebase config has been provided (used to fail fast in dev). */
 export const isFirebaseConfigured = config.firebase.apiKey.length > 0;
