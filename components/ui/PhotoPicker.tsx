@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Alert, Pressable, StyleSheet, Text, View, type AlertButton } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View, type AlertButton } from 'react-native';
 
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -19,6 +19,21 @@ export function PhotoPicker({ label, uri, onChange, height = 180 }: PhotoPickerP
   const c = useTheme();
 
   const choose = () => {
+    // React Native Web's Alert can't render a multi-button action sheet, so the
+    // native menu below never appears on web. Go straight to the file picker
+    // (expo-image-picker opens a file dialog on web), with window.confirm as the
+    // optional "remove" path.
+    if (Platform.OS === 'web') {
+      if (uri && window.confirm('Remove this photo? Cancel to choose a different one.')) {
+        onChange(null);
+        return;
+      }
+      void pickFromLibrary().then((u) => {
+        if (u) onChange(u);
+      });
+      return;
+    }
+
     const buttons: AlertButton[] = [
       {
         text: 'Take photo',

@@ -89,14 +89,20 @@ export function apiUpload<T>(path: string, form: FormData): Promise<T> {
 }
 
 /**
- * Build an Image source for a photo. Handles three shapes:
+ * Build an Image source for a photo. Handles these shapes:
  *  - http(s):// — remote URL (e.g. Unsplash) → no auth header
- *  - file:// or content:// — local URI (just picked) → no auth header
+ *  - file:// or content:// — local URI just picked on native → no auth header
+ *  - blob:// or data: — local URI just picked on web → no auth header
  *  - /photos/abc.jpg — backend-served photo → prepend apiUrl + add bearer auth
  */
 export function photoSource(urlOrPath: string): { uri: string; headers?: Record<string, string> } {
   if (urlOrPath.startsWith('http')) return { uri: urlOrPath };
-  if (urlOrPath.startsWith('file:') || urlOrPath.startsWith('content:')) {
+  if (
+    urlOrPath.startsWith('file:') ||
+    urlOrPath.startsWith('content:') ||
+    urlOrPath.startsWith('blob:') ||
+    urlOrPath.startsWith('data:')
+  ) {
     return { uri: urlOrPath };
   }
   const uri = fullUrl(urlOrPath);
