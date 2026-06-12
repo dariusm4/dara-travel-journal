@@ -11,6 +11,14 @@ same account and your journal comes with you.
 > grading rubric (see [`docs/Project-Criteria.md`](docs/Project-Criteria.md)):
 > all 15 base criteria plus all four extended criteria (A–D).
 
+## Screenshots
+
+| Trips | Trip detail | Entry detail |
+| :---: | :---: | :---: |
+| ![Trips list](docs/screenshots/trips.png) | ![Trip detail](docs/screenshots/trip-detail.png) | ![Entry detail](docs/screenshots/entry-detail.png) |
+| **AI companion** | **Currency converter** | **Profile** |
+| ![AI companion](docs/screenshots/companion.png) | ![Currency converter](docs/screenshots/currency.png) | ![Profile](docs/screenshots/profile.png) |
+
 ## Architecture at a glance
 
 ```
@@ -80,8 +88,14 @@ docs/           # project criteria
 
 ## Getting started
 
-**Prerequisites:** Node 20+, npm, the [Expo Go](https://expo.dev/go) app (or an
-Android/iOS emulator). The app and the backend both run on your dev machine.
+**Prerequisites:** Node 20+, npm, and either the [Expo Go](https://expo.dev/go)
+app, an Android/iOS emulator, **or just a web browser** (`npm run web`). The app
+and the backend both run on your dev machine.
+
+> The backend uses **better-sqlite3**, a native module. On Windows you'll need
+> the build tools that ship with a standard Node 20+ install; no extra setup is
+> usually required. See [Troubleshooting](#troubleshooting) if the server fails
+> to start.
 
 ### 1) Start the backend
 
@@ -108,14 +122,19 @@ cp .env.example .env              # fill in EXPO_PUBLIC_API_URL
 
 | Run target                        | URL                                                          |
 | --------------------------------- | ------------------------------------------------------------ |
+| Web browser (`npm run web`)       | `http://localhost:4000`                                      |
 | iOS simulator                     | `http://localhost:4000`                                      |
 | Android emulator                  | `http://10.0.2.2:4000`                                       |
 | Physical phone / Expo Go on Wi-Fi | `http://<your-LAN-IP>:4000` (from the backend's startup log) |
 
+> `EXPO_PUBLIC_*` values are baked in at bundle time — after changing `.env`,
+> restart Metro (stop it and re-run, or `npx expo start --clear`).
+
 ### 3) Run the app
 
 ```bash
-npm start                         # scan the QR with Expo Go, or press a / i
+npm start                         # dev server: scan the QR with Expo Go, or press a / i / w
+npm run web                       # or go straight to the browser at http://localhost:8081
 ```
 
 Register an account from the **Sign up** screen and you're in.
@@ -125,12 +144,13 @@ Register an account from the **Sign up** screen and you're in.
 1. Register, create a trip + entry with a photo, log out.
 2. **Uninstall the app** (or clear app storage).
 3. Reinstall and log in — your trip, entry, and photo all come back from the
-   backend (Firestore-style persistence, no third-party service).
+   backend (server-side persistence in SQLite, no third-party service).
 
 ## Scripts
 
 ```bash
 npm start          # Expo dev server
+npm run web        # open in a browser (http://localhost:8081)
 npm run android    # open on Android
 npm run ios        # open on iOS (macOS)
 npm test           # run the Jest test suite (44 tests)
@@ -151,6 +171,16 @@ npm start          # node dist/index.js (after build)
 Jest + React Native Testing Library (`npm test`). 44 tests cover pure logic
 (date / validation / currency / stats helpers), Redux slices, store wiring,
 and component behavior (Button, EmptyState).
+
+## Troubleshooting
+
+| Symptom | Fix |
+| --- | --- |
+| Server: `better_sqlite3.node is not a valid Win32 application` (or `ERR_DLOPEN_FAILED`) | The native module was built for another platform (e.g. `node_modules` copied across machines). Rebuild it: `cd server && npm rebuild better-sqlite3`. |
+| Server: `'tsx' is not recognized` | Dependencies are incomplete — run `npm install` again inside `server/`. |
+| App: **"Request timed out. Check your connection."** on sign in / sign up | `EXPO_PUBLIC_API_URL` doesn't point at the running backend. Use the value for your run target (web → `http://localhost:4000`), then **restart Metro** (`npx expo start --clear`). |
+| App can't reach the backend from a **physical phone** | Use the machine's **LAN IP** (printed in the backend's startup log), and make sure the phone and computer are on the same Wi-Fi. |
+| Edited `.env` but nothing changed | `EXPO_PUBLIC_*` is inlined at bundle time — restart Metro / clear cache (`npx expo start --clear`). |
 
 ## Building a preview APK (criterion 15)
 
