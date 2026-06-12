@@ -30,6 +30,36 @@ export function DateField({ label, value, onChange }: DateFieldProps) {
     if (selected) onChange(toISODate(selected));
   };
 
+  // `@react-native-community/datetimepicker` is a no-op on web, so render a
+  // native HTML date input there. Its value format (YYYY-MM-DD) matches our ISO.
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.wrap}>
+        <Text style={[styles.label, { color: c.textMuted }]}>{label}</Text>
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            minHeight: 50,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: c.border,
+            backgroundColor: c.surface,
+            color: value ? c.text : c.textMuted,
+            paddingLeft: spacing.md,
+            paddingRight: spacing.md,
+            fontSize: fontSize.body,
+            fontFamily: 'inherit',
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.wrap}>
       <Text style={[styles.label, { color: c.textMuted }]}>{label}</Text>
