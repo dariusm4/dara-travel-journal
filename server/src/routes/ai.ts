@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { requireAuth } from '../auth';
 
-const MODEL = 'gpt-4o-mini';
+const MODEL = 'gpt-5.4-mini';
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 const chatSchema = z.object({
@@ -43,8 +43,7 @@ router.post('/chat', async (req, res) => {
       body: JSON.stringify({
         model: MODEL,
         messages: parse.data.messages,
-        max_tokens: 600,
-        temperature: 0.8,
+        max_completion_tokens: 2000,
       }),
     });
     if (!upstream.ok) {
