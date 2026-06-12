@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { fontSize, fontWeight, radius, spacing } from '@/constants/theme';
@@ -34,7 +34,8 @@ function EntryCardComponent({ entry, onPress, index = 0 }: EntryCardProps) {
             source={photoSource(entry.photoUrl)}
             style={styles.thumb}
             contentFit="cover"
-            transition={150}
+            // See TripCard: expo-image's web fade can stick at opacity 0.
+            transition={Platform.OS === 'web' ? 0 : 150}
           />
         ) : (
           <View style={[styles.thumb, styles.thumbPlaceholder, { backgroundColor: c.surfaceAlt }]}>
